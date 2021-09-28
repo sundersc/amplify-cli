@@ -167,7 +167,7 @@ function getTransformerFactory(
       amplifyAdminEnabled = res.isAdminApp;
       adminUserPoolID = res.userPoolID;
     } catch (err) {
-      console.info('App not deployed yet.');
+      // Do Nothing
     }
     transformerList.push(new AuthTransformer({ authConfig: options?.authConfig, addAwsIamAuthInOutputSchema: false, adminUserPoolID }));
 
@@ -347,17 +347,6 @@ place .graphql files in a directory at ${schemaDirPath}`);
   }
 
   return transformerOutput;
-}
-
-async function addGraphQLAuthRequirement(context, authType) {
-  return await context.amplify.invokePluginMethod(context, 'api', undefined, 'addGraphQLAuthorizationMode', [
-    context,
-    {
-      authType: authType,
-      printLeadText: true,
-      authSettings: undefined,
-    },
-  ]);
 }
 
 function getProjectBucket(context) {

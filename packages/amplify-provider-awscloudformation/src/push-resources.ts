@@ -378,7 +378,9 @@ export async function run(context: $TSContext, resourceDefinition: $TSObject) {
 
     //check for auth resources and remove deployment secret for push
     resources
-      .filter(resource => resource.category === 'auth' && resource.service === 'Cognito' && resource.providerPlugin === 'awscloudformation')
+      .filter(
+        resource => resource.category === 'auth' && resource.service === 'Cognito' && resource.providerPlugin === 'awscloudformation',
+      )
       .map(({ category, resourceName }) => context.amplify.removeDeploymentSecrets(context, category, resourceName));
 
     await adminModelgen(context, resources);
@@ -1148,3 +1150,4 @@ function rollbackLambdaLayers(layerResources: $TSAny[]) {
     stateManager.setMeta(projectRoot, meta);
   }
 }
+

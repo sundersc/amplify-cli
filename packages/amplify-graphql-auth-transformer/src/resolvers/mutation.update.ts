@@ -94,10 +94,11 @@ const iamExpression = (
   hasAdminRolesEnabled: boolean = false,
   adminRoles: Array<string> = [],
   identityPoolId?: string,
+  strictIAMRoleValidation: boolean = true,
 ) => {
   const expression = new Array<Expression>();
   // allow if using an admin role
-  if (hasAdminRolesEnabled) {
+  if (hasAdminRolesEnabled && strictIAMRoleValidation) {
     expression.push(iamAdminRoleCheckExpression(adminRoles));
   }
   if (roles.length > 0) {
@@ -111,10 +112,14 @@ const iamExpression = (
               set(ref(`${NULL_ALLOWED_FIELDS}`), raw(JSON.stringify(role.nullAllowedFields))),
             ]),
             identityPoolId,
+            strictIAMRoleValidation,
           ),
         );
+        if (!strictIAMRoleValidation) {
+          break;
+        }
       } else {
-        expression.push(iamCheck(role.claim!, set(ref(IS_AUTHORIZED_FLAG), bool(true)), identityPoolId));
+        expression.push(iamCheck(role.claim!, set(ref(IS_AUTHORIZED_FLAG), bool(true)), identityPoolId, strictIAMRoleValidation));
       }
     }
   } else {
@@ -312,7 +317,7 @@ export const generateAuthExpressionForUpdate = (
     totalAuthExpressions.push(lambdaExpression(lambdaRoles));
   }
   if (providers.hasIAM) {
-    totalAuthExpressions.push(iamExpression(iamRoles, providers.hasAdminRolesEnabled, providers.adminRoles, providers.identityPoolId));
+    totalAuthExpressions.push(iamExpression(iamRoles, providers.hasAdminRolesEnabled, providers.adminRoles, providers.identityPoolId, providers.strictIAMRoleValidation));
   }
   if (providers.hasUserPools) {
     totalAuthExpressions.push(

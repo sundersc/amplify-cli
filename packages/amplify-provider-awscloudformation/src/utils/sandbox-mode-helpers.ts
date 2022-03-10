@@ -48,7 +48,7 @@ export function schemaHasSandboxModeEnabled(schema: string, docLink: string): bo
   const authRuleField = amplifyInputType.fields.find(matchesGlobalAuth);
 
   if (!authRuleField) {
-    throw Error(`input AMPLIFY requires "globalAuthRule" field. Learn more here: ${docLink}`);
+    return false;
   }
 
   const typeName = authRuleField.type.name.value;
@@ -66,4 +66,22 @@ export function schemaHasSandboxModeEnabled(schema: string, docLink: string): bo
       `There was a problem with your auth configuration. Learn more about auth here: ${docLink}`,
     );
   }
+}
+
+export function getIAMStrictValidationField(schema: string, docLink: string): boolean {
+  const { definitions } = parse(schema);
+  const amplifyInputType: any = definitions.find((d: any) => d.kind === 'InputObjectTypeDefinition' && d.name.value === AMPLIFY);
+
+  if (!amplifyInputType) {
+    return true;
+  }
+
+  const strictIAMRuleField = amplifyInputType.fields.find(field => ['strictIAMValidation'].includes(field.name.value));
+
+  if (!strictIAMRuleField) {
+    return true;
+  }
+
+  const strictIAMValdationValue = strictIAMRuleField.defaultValue?.value ?? true;
+  return strictIAMValdationValue;
 }

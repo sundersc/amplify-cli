@@ -74,10 +74,11 @@ const iamExpression = (
   hasAdminRolesEnabled: boolean = false,
   adminRoles: Array<string> = [],
   identityPoolId?: string,
+  strictIAMRoleValidation: boolean = true,
 ) => {
   const expression = new Array<Expression>();
   // allow if using an admin role
-  if (hasAdminRolesEnabled) {
+  if (hasAdminRolesEnabled && strictIAMRoleValidation) {
     expression.push(iamAdminRoleCheckExpression(adminRoles));
   }
   if (roles.length === 0) {
@@ -90,7 +91,10 @@ const iamExpression = (
       } else {
         exp.push(set(ref(allowedAggFieldsList), ref(totalFields)));
       }
-      expression.push(iff(not(ref(IS_AUTHORIZED_FLAG)), iamCheck(role.claim!, compoundExpression(exp), identityPoolId)));
+      expression.push(iff(not(ref(IS_AUTHORIZED_FLAG)), iamCheck(role.claim!, compoundExpression(exp), identityPoolId, strictIAMRoleValidation)));
+      if (!strictIAMRoleValidation) {
+        break;
+      }
     }
   }
   return iff(equals(ref('util.authType()'), str(IAM_AUTH_TYPE)), compoundExpression(expression));
@@ -238,8 +242,15 @@ export const generateAuthExpressionForSearchQueries = (
   fields: ReadonlyArray<FieldDefinitionNode>,
   allowedAggFields: Array<string>,
 ): string => {
-  const { cognitoStaticRoles, cognitoDynamicRoles, oidcStaticRoles, oidcDynamicRoles, apiKeyRoles, iamRoles, lambdaRoles } =
-    splitRoles(roles);
+  const {
+    cognitoStaticRoles,
+    cognitoDynamicRoles,
+    oidcStaticRoles,
+    oidcDynamicRoles,
+    apiKeyRoles,
+    iamRoles,
+    lambdaRoles,
+  } = splitRoles(roles);
   const totalAuthExpressions: Array<Expression> = [
     setHasAuthExpression,
     set(ref(IS_AUTHORIZED_FLAG), bool(false)),
@@ -253,7 +264,15 @@ export const generateAuthExpressionForSearchQueries = (
     totalAuthExpressions.push(lambdaExpression(lambdaRoles));
   }
   if (providers.hasIAM) {
-    totalAuthExpressions.push(iamExpression(iamRoles, providers.hasAdminRolesEnabled, providers.adminRoles, providers.identityPoolId));
+    totalAuthExpressions.push(
+      iamExpression(
+        iamRoles,
+        providers.hasAdminRolesEnabled,
+        providers.adminRoles,
+        providers.identityPoolId,
+        providers.strictIAMRoleValidation,
+      ),
+    );
   }
   if (providers.hasUserPools) {
     totalAuthExpressions.push(

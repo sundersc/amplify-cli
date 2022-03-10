@@ -55,7 +55,7 @@ export const addAllowedFieldsIfElse = (fieldKey: string, breakLoop: boolean = fa
 };
 
 // iam check
-export const iamCheck = (claim: string, exp: Expression, identityPoolId?: string) => {
+export const iamCheck = (claim: string, exp: Expression, identityPoolId?: string, strictIAMRoleValidation: boolean = true) => {
   let iamExp: Expression = equals(ref('ctx.identity.userArn'), ref(`ctx.stash.${claim}`));
   // only include the additional check if we have a private rule and a provided identityPoolId
   if (identityPoolId && claim === 'authRole') {
@@ -69,7 +69,13 @@ export const iamCheck = (claim: string, exp: Expression, identityPoolId?: string
       ),
     ]);
   }
-  return iff(iamExp, exp);
+
+  if (strictIAMRoleValidation) {
+    return iff(iamExp, exp);
+  }
+  else {
+    return exp;
+  }
 };
 
 /**
@@ -151,15 +157,29 @@ export const iamExpression = (
   adminRoles: Array<string> = [],
   identityPoolId: string = undefined,
   fieldName: string = undefined,
+  strictIAMRoleValidation: boolean = true,
 ) => {
   const expression = new Array<Expression>();
   // allow if using an admin role
-  if (adminRolesEnabled) {
+  if (adminRolesEnabled && strictIAMRoleValidation) {
     expression.push(iamAdminRoleCheckExpression(adminRoles, fieldName));
   }
   if (roles.length > 0) {
     for (let role of roles) {
-      expression.push(iff(not(ref(IS_AUTHORIZED_FLAG)), iamCheck(role.claim!, set(ref(IS_AUTHORIZED_FLAG), bool(true)), identityPoolId)));
+      expression.push(
+        iff(
+          not(ref(IS_AUTHORIZED_FLAG)),
+          iamCheck(
+            role.claim!,
+            set(ref(IS_AUTHORIZED_FLAG), bool(true)),
+            identityPoolId,
+            strictIAMRoleValidation,
+          ),
+        ),
+      );
+      if (!strictIAMRoleValidation) {
+        break;
+      }
     }
   } else {
     expression.push(ref('util.unauthorized()'));

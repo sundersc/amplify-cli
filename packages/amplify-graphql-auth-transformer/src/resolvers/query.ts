@@ -357,7 +357,16 @@ export const generateAuthExpressionForQueries = (
     totalAuthExpressions.push(lambdaExpression(lambdaRoles));
   }
   if (providers.hasIAM) {
-    totalAuthExpressions.push(iamExpression(iamRoles, providers.hasAdminRolesEnabled, providers.adminRoles, providers.identityPoolId));
+    totalAuthExpressions.push(
+      iamExpression(
+        iamRoles,
+        providers.hasAdminRolesEnabled,
+        providers.adminRoles,
+        providers.identityPoolId,
+        undefined,
+        providers.strictIAMRoleValidation,
+      ),
+    );
   }
   if (providers.hasUserPools) {
     totalAuthExpressions.push(
@@ -395,8 +404,15 @@ export const generateAuthExpressionForRelationQuery = (
   fields: ReadonlyArray<FieldDefinitionNode>,
   primaryFieldMap: RelationalPrimaryMapConfig,
 ) => {
-  const { cognitoStaticRoles, cognitoDynamicRoles, oidcStaticRoles, oidcDynamicRoles, apiKeyRoles, iamRoles, lambdaRoles } =
-    splitRoles(roles);
+  const {
+    cognitoStaticRoles,
+    cognitoDynamicRoles,
+    oidcStaticRoles,
+    oidcDynamicRoles,
+    apiKeyRoles,
+    iamRoles,
+    lambdaRoles,
+  } = splitRoles(roles);
   const getNonPrimaryFieldRoles = (roles: RoleDefinition[]) => roles.filter(roles => !primaryFieldMap.has(roles.entity));
   const totalAuthExpressions: Array<Expression> = [setHasAuthExpression, set(ref(IS_AUTHORIZED_FLAG), bool(false))];
   if (providers.hasApiKey) {
@@ -406,7 +422,16 @@ export const generateAuthExpressionForRelationQuery = (
     totalAuthExpressions.push(lambdaExpression(lambdaRoles));
   }
   if (providers.hasIAM) {
-    totalAuthExpressions.push(iamExpression(iamRoles, providers.hasAdminRolesEnabled, providers.adminRoles, providers.identityPoolId));
+    totalAuthExpressions.push(
+      iamExpression(
+        iamRoles,
+        providers.hasAdminRolesEnabled,
+        providers.adminRoles,
+        providers.identityPoolId,
+        undefined,
+        providers.strictIAMRoleValidation,
+      ),
+    );
   }
   if (providers.hasUserPools) {
     totalAuthExpressions.push(

@@ -19,6 +19,8 @@ export interface AuthTransformerConfig {
   adminRoles?: Array<string>;
   /** when authorizing private/public @auth can also check authenticated/unauthenticated status for a given identityPoolId */
   identityPoolId?: string;
+  /** Determines whether IAM auth should validate exact IAM roles or not */
+  strictIAMRoleValidation?: boolean;
 }
 
 export interface RolesByProvider {
@@ -72,6 +74,7 @@ export interface ConfiguredAuthProviders {
   hasAdminRolesEnabled: boolean;
   adminRoles: Array<string>;
   identityPoolId?: string;
+  strictIAMRoleValidation?: boolean;
 }
 
 export const authDirectiveDefinition = `

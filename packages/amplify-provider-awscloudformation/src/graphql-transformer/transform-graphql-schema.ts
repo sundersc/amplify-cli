@@ -46,7 +46,7 @@ import { getTransformerVersion, searchablePushChecks } from '../transform-graphq
 import { hashDirectory } from '../upload-appsync-files';
 import { AmplifyCLIFeatureFlagAdapter } from '../utils/amplify-cli-feature-flag-adapter';
 import { isAuthModeUpdated } from '../utils/auth-mode-compare';
-import { schemaHasSandboxModeEnabled, showGlobalSandboxModeWarning, showSandboxModePrompts } from '../utils/sandbox-mode-helpers';
+import { schemaHasSandboxModeEnabled, showGlobalSandboxModeWarning, showSandboxModePrompts, getIAMStrictValidationField } from '../utils/sandbox-mode-helpers';
 import { GraphQLSanityCheck, SanityCheckRules } from './sanity-check';
 import { parseUserDefinedSlots } from './user-defined-slots';
 import { getAdminRoles, getIdentityPoolId, mergeUserConfigWithTransformOutput, writeDeploymentToDisk } from './utils';
@@ -86,6 +86,7 @@ function getTransformerFactory(
     const authTransformer = new AuthTransformer({
       adminRoles: options.adminRoles ?? [],
       identityPoolId: options.identityPoolId,
+      strictIAMRoleValidation: options.strictIAMRoleValidation ?? true,
     });
     const transformerList: TransformerPluginProvider[] = [
       modelTransformer,
@@ -322,7 +323,7 @@ export async function transformGraphQLSchema(context, options) {
     authConfig.defaultAuthentication.authenticationType === 'API_KEY' ||
     authConfig.additionalAuthenticationProviders.some(a => a.authenticationType === 'API_KEY');
   const showSandboxModeMessage = sandboxModeEnabled && hasApiKey;
-
+  const strictIAMRoleValidation = getIAMStrictValidationField(project.schema, docLink);
   if (showSandboxModeMessage) {
     const transformerVersion = await getTransformerVersion(context);
     const docLink = getGraphQLTransformerAuthDocLink(transformerVersion);
@@ -379,6 +380,7 @@ export async function transformGraphQLSchema(context, options) {
       authConfig,
       adminRoles,
       identityPoolId,
+      strictIAMRoleValidation,
     },
     rootStackFileName: 'cloudformation-template.json',
     currentCloudBackendDirectory: previouslyDeployedBackendDir,
@@ -387,6 +389,7 @@ export async function transformGraphQLSchema(context, options) {
     lastDeployedProjectConfig,
     authConfig,
     sandboxModeEnabled,
+    strictIAMRoleValidation,
     sanityCheckRules,
     resolverConfig: resolverConfig,
   };
@@ -487,6 +490,7 @@ type TransformerFactoryArgs = {
   storageConfig?: any;
   adminRoles?: Array<string>;
   identityPoolId?: string;
+  strictIAMRoleValidation?: boolean;
 };
 
 export type ProjectOptions<T> = {
@@ -507,6 +511,7 @@ export type ProjectOptions<T> = {
   authConfig?: AppSyncAuthConfiguration;
   stacks: Record<string, Template>;
   sandboxModeEnabled?: boolean;
+  strictIAMRoleValidation?: boolean;
   sanityCheckRules: SanityCheckRules;
   overrideConfig: OverrideConfig;
 };
@@ -555,6 +560,7 @@ async function _buildProject(opts: ProjectOptions<TransformerFactoryArgs>) {
     stacks: opts.projectConfig.stacks || {},
     featureFlags: new AmplifyCLIFeatureFlagAdapter(),
     sandboxModeEnabled: opts.sandboxModeEnabled,
+    strictIAMRoleValidation: opts.strictIAMRoleValidation,
     userDefinedSlots,
     resolverConfig: opts.resolverConfig,
     overrideConfig: opts.overrideConfig,

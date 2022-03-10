@@ -103,6 +103,7 @@ export const getConfiguredAuthProviders = (config: AuthTransformerConfig): Confi
     onlyDefaultAuthProviderConfigured: config.authConfig.additionalAuthenticationProviders.length === 0,
     hasAdminRolesEnabled: hasIAM && config.adminRoles?.length > 0,
     adminRoles: config.adminRoles,
+    strictIAMRoleValidation: config.strictIAMRoleValidation,
     identityPoolId: config.identityPoolId,
     hasApiKey: providers.some(p => p === 'API_KEY'),
     hasUserPools: providers.some(p => p === 'AMAZON_COGNITO_USER_POOLS'),

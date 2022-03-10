@@ -81,6 +81,7 @@ export interface GraphQLTransformOptions {
   readonly featureFlags?: FeatureFlagProvider;
   readonly host?: TransformHostProvider;
   readonly sandboxModeEnabled?: boolean;
+  readonly strictIAMRoleValidation?: boolean;
   readonly userDefinedSlots?: Record<string, UserDefinedSlot[]>;
   readonly resolverConfig?: ResolverConfig;
   readonly overrideConfig?: OverrideConfig;
@@ -148,6 +149,7 @@ export class GraphQLTransform {
       this.stackMappingOverrides,
       this.authConfig,
       this.options.sandboxModeEnabled,
+      this.options.strictIAMRoleValidation,
       this.options.featureFlags,
       this.resolverConfig,
     );

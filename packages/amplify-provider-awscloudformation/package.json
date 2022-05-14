@@ -77,6 +77,8 @@
     "@aws-cdk/core": "~1.124.0",
     "@aws-cdk/custom-resources": "~1.124.0",
     "@aws-cdk/region-info": "~1.124.0",
+    "@graphql-inspector/core": "^3.1.2",
+    "@graphql-tools/schema": "^8.3.1",
     "@octokit/rest": "^18.0.9",
     "ajv": "^6.12.6",
     "amplify-cli-core": "2.7.0",

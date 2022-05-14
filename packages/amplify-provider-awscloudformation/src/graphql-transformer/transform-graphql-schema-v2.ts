@@ -39,6 +39,9 @@ import { parseUserDefinedSlots } from './user-defined-slots';
 import {
   getAdminRoles, getIdentityPoolId, mergeUserConfigWithTransformOutput, writeDeploymentToDisk,
 } from './utils';
+import { diff } from '@graphql-inspector/core';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { parse } from 'graphql';
 
 const PARAMETERS_FILENAME = 'parameters.json';
 const SCHEMA_FILENAME = 'schema.graphql';
@@ -291,6 +294,54 @@ export const transformGraphQLSchemaV2 = async (context: $TSContext, options): Pr
 
   printer.success(`GraphQL schema compiled successfully.\n\nEdit your schema at ${schemaFilePath} or \
 place .graphql files in a directory at ${schemaDirPath}`);
+
+  const nextDeploymentSchema = await fs.readFile(path.normalize(path.join(buildDir, 'schema.graphql')), 'utf8');
+  const currentDeploymentSchema = await fs.readFile(path.normalize(path.join(previouslyDeployedBackendDir, 'build', 'schema.graphql')), 'utf8');
+
+  // printer.success(nextDeploymentSchema);
+  // printer.success(currentDeploymentSchema);
+  const EXTRA_SCALARS_DOCUMENT = parse(`
+    scalar AWSDate
+    scalar AWSTime
+    scalar AWSDateTime
+    scalar AWSTimestamp
+    scalar AWSEmail
+    scalar AWSJSON
+    scalar AWSURL
+    scalar AWSPhone
+    scalar AWSIPAddress
+    scalar BigInt
+    scalar Double
+    `);
+
+  const EXTRA_DIRECTIVES_DOCUMENT = parse(`
+    directive @aws_subscribe(mutations: [String!]!) on FIELD_DEFINITION
+    directive @aws_auth(cognito_groups: [String!]!) on FIELD_DEFINITION
+    directive @aws_api_key on FIELD_DEFINITION | OBJECT
+    directive @aws_iam on FIELD_DEFINITION | OBJECT
+    directive @aws_oidc on FIELD_DEFINITION | OBJECT
+    directive @aws_cognito_user_pools(cognito_groups: [String!]) on FIELD_DEFINITION | OBJECT
+    directive @aws_lambda on FIELD_DEFINITION | OBJECT
+
+    # Allows transformer libraries to deprecate directive arguments.
+    directive @deprecated(reason: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ENUM | ENUM_VALUE
+    `);
+
+  const difference = await diff(
+    makeExecutableSchema({ typeDefs: [EXTRA_DIRECTIVES_DOCUMENT, EXTRA_SCALARS_DOCUMENT, parse(currentDeploymentSchema)] }), 
+    makeExecutableSchema({ typeDefs: [EXTRA_DIRECTIVES_DOCUMENT, EXTRA_SCALARS_DOCUMENT, parse(nextDeploymentSchema)] }),
+  );
+
+  printer.blankLine();
+  difference.forEach(d => {
+    if (d.criticality.level == 'NON_BREAKING') {
+      printer.success(`[${d.criticality.level}] - ${d.message}`);
+    } else if (d.criticality.level == 'BREAKING') {
+      printer.error(`[${d.criticality.level}] - ${d.message}`);
+    } else {
+      printer.warn(`[${d.criticality.level}] - ${d.message}`);
+    }
+  });
 
   if (isAuthModeUpdated(options)) {
     parameters.AuthModeLastUpdated = new Date();
